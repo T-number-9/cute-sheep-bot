@@ -190,7 +190,8 @@ async def button(update, context):
             markup = InlineKeyboardMarkup(sheep_keyboard)  # добавляем кнопки в сообщение
             text = ''
 
-            items = cursor.execute('SELECT item_id, item_count FROM all_users_items WHERE user_id = ?',
+            items = cursor.execute('SELECT item_id, item_count FROM all_users_items WHERE user_id = ? '
+                                   'AND item_count != 0',
                                    (user_id,)).fetchall()
 
             for i in range(len(items)):
@@ -375,10 +376,15 @@ async def button(update, context):
     elif 'trade' in query.data:
         info = query.data.split('_')
         if 'I' in info[1]:
-            count = cursor.execute('SELECT item_count FROM all_users_items WHERE user_id = ? AND item_id = ?',
-                                   (query.message.chat_id, info[1])).fetchone()[0]
-            money = cursor.execute('SELECT money FROM users WHERE user_id = ?',
-                                   (query.message.chat_id,)).fetchone()[0]
+            try:
+                count = cursor.execute('SELECT item_count FROM all_users_items WHERE user_id = ? AND item_id = ?',
+                                       (query.message.chat_id, info[1])).fetchone()[0]
+            except Exception:
+                cursor.execute('INSERT INTO all_users_items VALUES (?, ?, ?)',
+                               (query.message.chat_id, info[1], 0))
+                conn.commit()
+                count = cursor.execute('SELECT item_count FROM all_users_items WHERE user_id = ? AND item_id = ?',
+                                       (query.message.chat_id, info[1])).fetchone()[0]
             if count > 0:
                 try:
                     cursor.execute('UPDATE users SET money = money + ? WHERE user_id = ?',
@@ -419,10 +425,15 @@ async def button(update, context):
                 await bot.answer_callback_query(query.id, f'{sticker} +1')
 
         elif 'F' in info[1]:
-            count = cursor.execute('SELECT food_count FROM all_users_foods WHERE user_id = ? AND food_id = ?',
-                                   (query.message.chat_id, info[1])).fetchone()[0]
-            money = cursor.execute('SELECT money FROM users WHERE user_id = ?',
-                                   (query.message.chat_id,)).fetchone()[0]
+            try:
+                count = cursor.execute('SELECT food_count FROM all_users_foods WHERE user_id = ? AND food_id = ?',
+                                       (query.message.chat_id, info[1])).fetchone()[0]
+            except Exception:
+                cursor.execute('INSERT INTO all_users_foods VALUES (?, ?, ?)',
+                               (query.message.chat_id, info[1], 0))
+                conn.commit()
+                count = cursor.execute('SELECT food_count FROM all_users_foods WHERE user_id = ? AND food_id = ?',
+                                       (query.message.chat_id, info[1])).fetchone()[0]
             if count > 0:
                 try:
                     cursor.execute('UPDATE users SET money = money + ? WHERE user_id = ?',
